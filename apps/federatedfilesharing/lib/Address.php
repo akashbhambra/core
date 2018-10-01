@@ -54,7 +54,9 @@ class Address {
 	 * @return string
 	 */
 	public function getCloudId() {
-		return $this->cloudId;
+		$hostName = $this->getHostName();
+		$userId = $this->getUserId();
+		return "{$userId}@{$hostName}";
 	}
 
 	/**
@@ -70,25 +72,25 @@ class Address {
 	}
 
 	/**
-	 * Get user host
+	 * Get user host without protocol and trailing slash
 	 *
 	 * @return string
 	 */
 	public function getHostName() {
 		// hostname is the last part
 		$parts = \explode('@', $this->cloudId);
-		return \array_pop($parts);
-	}
+		$rawHostName = \array_pop($parts);
+		if ($fileNamePosition = \strpos($rawHostName, '/index.php')) {
+			$rawHostName = \substr($rawHostName, 0, $fileNamePosition);
+		}
 
-	/**
-	 * Get user host without protocol and trailing slash
-	 *
-	 * @return string
-	 */
-	public function getCleanHostName() {
-		$hostName = \rtrim($this->getHostName(), '/');
+		$normalizedHostname = \rtrim(
+			\strtolower($rawHostName),
+			'/'
+		);
+
 		// replace all characters before :// and :// itself
-		return \preg_replace('|^(.*?://)|', '', $hostName);
+		return \preg_replace('|^(.*?://)|', '', $normalizedHostname);
 	}
 
 	/**
@@ -98,5 +100,34 @@ class Address {
 	 */
 	public function getDisplayName() {
 		return ($this->displayName !== '') ? $this->displayName : $this->getUserId();
+	}
+
+	/**
+	 * Checks if the user and host is the same with another address
+	 *
+	 * @param Address $address
+	 *
+	 * @return bool
+	 */
+	public function equalTo(Address $address) {
+		$thisUserId = $this->translateUid($this->getUserId());
+		$otherUserId = $this->translateUid($address->getUserId());
+		return $this->getHostName() === $address->getHostName()
+			&& $thisUserId === $otherUserId;
+	}
+
+	/**
+	 * @param string $uid
+	 * @return mixed
+	 */
+	protected function translateUid($uid) {
+		// FIXME this should be a method in the user management instead
+		// Move to a helper instead of C&P meanwhile?
+		\OCP\Util::emitHook(
+			'\OCA\Files_Sharing\API\Server2Server',
+			'preLoginNameUsedAsUserName',
+			['uid' => &$uid]
+		);
+		return $uid;
 	}
 }

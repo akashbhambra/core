@@ -36,7 +36,6 @@ use OCP\ILogger;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 use OCP\IUserManager;
-use OCP\Share\IShare;
 
 /**
  * Class OcmController
@@ -336,17 +335,33 @@ class OcmController extends Controller {
 					break;
 				case FileNotification::NOTIFICATION_TYPE_REQUEST_RESHARE:
 					$this->ocmMiddleware->assertOutgoingSharingEnabled();
+					$this->ocmMiddleware->assertNotNull(
+						[
+							'shareWith' => $notification['shareWith'],
+							'senderId' => $notification['senderId'],
+						]
+					);
 					$share = $this->ocmMiddleware->getValidShare(
 						$providerId, $notification['sharedSecret']
 					);
+
+					// don't allow to share a file back to the owner
+					$owner = $share->getShareOwner();
+					$ownerAddress = $this->addressHandler->getLocalUserFederatedAddress($owner);
+					$shareWithAddress = new Address($notification['shareWith']);
+					$this->ocmMiddleware->assertNotSameUser($ownerAddress, $shareWithAddress);
+					$this->ocmMiddleware->assertSharingPermissionSet($share);
+
 					// TODO: permissions not needed ???
-					$share = $this->fedShareManager->reShare(
-						$share, $providerId, $notification['shareWith'], 0
+					$reShare = $this->fedShareManager->reShare(
+						$share, $notification['senderId'],
+						$notification['shareWith'],
+						0
 					);
 					return new JSONResponse(
 						[
-							'sharedSecret' => $share->getToken(),
-							'providerId' => $share->getId()
+							'sharedSecret' => $reShare->getToken(),
+							'providerId' => $reShare->getId()
 						],
 						Http::STATUS_CREATED
 					);
