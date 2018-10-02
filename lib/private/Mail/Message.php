@@ -47,35 +47,35 @@ class Message {
 	 * @param array $addresses Array of mail addresses, key will get converted
 	 * @return array Converted addresses if `idn_to_ascii` exists
 	 */
-	protected function convertAddresses($addresses) {
-		if (!\function_exists('idn_to_ascii')) {
-			return $addresses;
-		}
+    protected function convertAddresses($addresses) {
+        if (!\function_exists('idn_to_ascii')) {
+            return $addresses;
+        }
 
-		$convertedAddresses = [];
+        $convertedAddresses = [];
 
-		foreach ($addresses as $email => $readableName) {
-						if (!\is_numeric($email)) {
-										list($name, $domain) = \explode('@', $email, 2);
-										if (\defined('INTL_IDNA_VARIANT_UTS46')) {
-														$domain = \idn_to_ascii($domain, 0, INTL_IDNA_VARIANT_UTS46);
-										} else {
-														$domain = idn_to_ascii($domain);
-										}
-										$convertedAddresses[$name.'@'.$domain] = $readableName;
-						} else {
-										list($name, $domain) = \explode('@', $readableName, 2);
-										if (\defined('INTL_IDNA_VARIANT_UTS46')) {
-														$domain = \idn_to_ascii($domain, 0, INTL_IDNA_VARIANT_UTS46);
-						} else {
-										$domain = \idn_to_ascii($domain);
-						}
-						$convertedAddresses[$email] = $name.'@'.$domain;
-				}
-		}
+        foreach ($addresses as $email => $readableName) {
+                if (!\is_numeric($email)) {
+                        list($name, $domain) = \explode('@', $email, 2);
+                        if (\defined('INTL_IDNA_VARIANT_UTS46')) {
+                                $domain = \idn_to_ascii($domain, 0, INTL_IDNA_VARIANT_UTS46);
+                        } else {
+                                $domain = \idn_to_ascii($domain);
+                        }
+                        $convertedAddresses[$name.'@'.$domain] = $readableName;
+                } else {
+                        list($name, $domain) = \explode('@', $readableName, 2);
+                        if (\defined('INTL_IDNA_VARIANT_UTS46')) {
+                                $domain = \idn_to_ascii($domain, 0, INTL_IDNA_VARIANT_UTS46);
+                        } else {
+                                $domain = \idn_to_ascii($domain);
+                        }
+                        $convertedAddresses[$email] = $name.'@'.$domain;
+                }
+        }
 
-		return $convertedAddresses;
-	}
+        return $convertedAddresses;
+    }
 
 	/**
 	 * Set the from address of this message.
